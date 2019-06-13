@@ -1,0 +1,2 @@
+# Regression_Analysis_NBA_Statistics
+The scientific goal for my analysis is to utilize the player statistics dataset to predict an NBA team's win percentage. Mainly, I am trying to see which type of regression yields in the best results using: Linear Regression, Logistic Regression, Bayesian Linear Regression, Ridge Regression, and Lasso. Which model will most accurately predict a team's win percentage?
