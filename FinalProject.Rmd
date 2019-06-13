@@ -1,0 +1,333 @@
+---
+title: "Analysis of NBA Team Statistics"
+author: "Jovan Krcadinac (krcadin2)""
+date: "May 5, 2019"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Introduction and Literature Review:
+
+Our group used the following dataset for our analysis:
+ - https://www.kaggle.com/dzchen/nba-advanced-statistics-20172018
+This dataset gives NBA Advanced Statistics for every active player within the NBA during the 2017-2018 Regular Season. This dataset has 532 observations (for each of the players) and 57 variables (that either give basic player information or season statistics).
+
+The scientific goal for our analysis is to utilize the player statistics within the previously mentioned dataset to predict an NBA team's win percentage. Namely, we are trying to answer questions like:
+ - Which NBA player statistics best predict the highest winning percentage?
+ - Out of Linear Regression, Logistic Regression, Bayesian Linear Regression, Ridge Regression, and Lasso       Regression; which model is most appropriate / will most accurately predict a team's win percentage?
+
+In terms of our analysis, we will face significant challenges throughout each step. In order to systematically tackle these challenges, we'll generally stick to the following steps:
+ - Identify relevant NBA player statistics
+ - Isolate the relevant statistics
+ - Model the relevant statistics using the 5 aforementioned regression methods
+ - Identify the method that yields the best model
+ - Within the best model, identify the statistics that most significantly influenced a team's win percentage
+
+After reviewing literature and relevant sources, we found the following analysis:
+ - https://arxiv.org/pdf/1604.03186.pdf
+This piece of literature has the same scientific goals as us, but utilizes data from a different season and took a rather different approach by focusing on the statistics of a few high-impact players (e.g. Lebron James, Dirk Nowitzki, etc.).
+
+# Summary statistics and data visualization:
+
+## Challenges
+
+A challenge that our group may face when doing this analysis is that we are using two different datasets and will need to find a way to integrate both sets of data with each other to properly do our analysis.  It will be difficult to matchup all of the players from one team to the team statistics from the other dataset for each year since there are 30 teams with different players each year.  Our analysis is relying heavily on the combination of these two datasets since we are predicting team winning percentage based on players' individual statistics.  This process will take up a lot of time and will need to be done before we perform any regression for our analysis.
+
+## Team Variables Analysis
+
+- The first six variables are relevant to our analysis goal because they not only help us to identify and index the current dataset, but also helps us match players with their respective teams within ‘final_data_sort’. Having these common indices will allow us to integrate data from multiple sources within our final regression model (that models team win percentage).  
+
+    1. ‘PLAYER_ID’ Index
+    2. ‘PLAYER_NAME’ Name
+    3. ‘Age’ Age
+    4. ‘TEAM_ABBREVIATION’ Team
+    5. 'TEAM_ID' Team ID
+    6. 'CFID' ID
+    7. 'CFPARAMS' CF Parameters 
+    
+
+- The next three variables are relevant to our analysis goal because they determine the weight of each players contribution in relation with the teams win percentage. Naturally, players that play less have a smaller impact on the team’s win percentage and vice versa.
+  
+    8. ‘GP’ Games Played
+    8. ‘W’ Wins
+    9. ‘L’ Losses
+    10. 'W_PCT' Win Percentage 
+    11. 'MIN' Minutes
+    12. 'OFF_RATING' Offensive Rating
+    13. 'DEF_RATING' Defensive Rating
+    14. 'NET_RATING' Net Rating
+    
+
+  
+- The next variables are relevant because it helps us determine how each player’s individual shooting contributions affect the team’s win percentage. The remaining three variables are relevant because they will be used to see how each player’s shooting efficiency (within three different categories) affects the team’s win percentage.
+  
+    10. 'FGM' Field Goals Made
+    11. 'FGA' Field Goals Attempted
+    12. 'FGM_PG' Field Goals Made Per Game
+    13. 'FGA_PG' Field Goals Attempted Per Game
+    14. 'FG_PCT' Field Goal Percentage 
+    15. 'EFG_PCT' Effective Field Goal Percentage
+    16. 'TS_PCT' True Shooting Percentage
+    
+    
+- Although scoring is one of the primary facets of a player’s game it is definetly not the whole picture. The following percentage data reflects other primary statistics for players; more specifically: Rebound Percentage, Assist Percentage, Steal Percentage, Block Percentage, Turnover Percentage, and Usage Percentage. A player’s ability to influence the game through these categories will significantly contribute to whether or not a team will be able to win.
+
+    17. 'AST_PCT' Assist Percentage
+    18. 'AST_TO' Turnovers
+    19. 'AST_RATIO' Turnovers to Assits Ratio
+    20. 'OREB_PCT' Offensive Rebound Percentage
+    21. 'DREB_PCT' Deffensive Rebound Percentage
+    22. 'TM_TOV_PCT' Team Turnover Percentage
+    23. 'USG_PCT' Usage Percent
+
+
+- The following set of statistics represent the major statistical categories for each player. They will play a majority role in determining how each player’s contribution on each team will influence the team’s overall win percentage for the season.
+
+    24. 'PACE' Pace Factor
+    25. 'PIE' PIE Rating
+    
+
+- The final category of variables comes from the statistical ranks of each individual players. 
+
+    26. "GP_RANK"           
+    27. "W_RANK"           
+    28. "L_RANK"            
+    29. "W_PCT_RANK"      
+    30. "MIN_RANK"         
+    31. "OFF_RATING_RANK"   
+    32. "DEF_RATING_RANK"   
+    33. "NET_RATING_RANK"   
+    34. "AST_PCT_RANK"      
+    35. "AST_TO_RANK"      
+    36. "AST_RATIO_RANK"    
+    37. "OREB_PCT_RANK"     
+    38. "DREB_PCT_RANK"    
+    39. "REB_PCT_RANK"     
+    40. "TM_TOV_PCT_RANK"  
+    41. "EFG_PCT_RANK"      
+    42. "TS_PCT_RANK"       
+    43. "USG_PCT_RANK"      
+    44. "PACE_RANK"         
+    45. "PIE_RANK"         
+    46. "FGM_RANK"         
+    47. "FGA_RANK"          
+    48. "FGM_PG_RANK"       
+    49. "FGA_PG_RANK"     
+    50. "FG_PCT_RANK" 
+    
+Our final variable is Team Win Percentage, the variable we are trying to determine.
+
+    51. "TEAM_WIN_PCT"     
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+data = read.csv('NBAadvancedstats17_18.csv', header = T)
+
+data_sort = data[order(data$TEAM_ABBREVIATION), ]
+
+TEAM_WIN_PCT = c(.293, .341, .671, .439, .329, .610, .293, .561, .476, .707, .793, .585, .512, .427, .268, .537, .537, .573, .585, .354, .585, .305, .634, .256, .598, .329, .573, .720, .585, .524)
+
+TEAM_ABBREVIATION = c('ATL', 'BKN', 'BOS', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW', 'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK', 'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS')
+
+w = data.frame(TEAM_WIN_PCT = TEAM_WIN_PCT, TEAM_ABBREVIATION = TEAM_ABBREVIATION)
+
+final_data = merge(data_sort, w, by  = 'TEAM_ABBREVIATION')
+
+head(final_data)
+
+nrow(final_data)
+ncol(final_data)
+```
+
+Since our data set consisted of advanced player statistics, we knew we were going to have highly correlated variables. For example, FG_PCT and FG_PCT_RANK are both based on the player's field goal accuracy, so we knew we had to eliminate some of the variables right away. Another issue our team had facing the data was that it was filled with factor variables. These include TEAM_ABBREVIATION, TEAM_ID, PLAYER_ID, PLAYER_NAME, AGE, CFID, and CFPARAMS. These variables provided little to no value when we perform our analysis. 
+
+```{r}
+final_data_sort = select(.data = final_data, -c(TEAM_ABBREVIATION, TEAM_ID, PLAYER_ID, PLAYER_NAME, AGE, CFID, CFPARAMS))
+
+ncol(final_data_sort)
+```
+
+After removing the factor variables, it's time to see which variables are highly correlated. 
+
+```{r}
+tmp <- cor(final_data_sort)
+tmp[!lower.tri(tmp)] <- 0
+final_data_sort <- final_data_sort[,!apply(tmp,2,function(x) any(x > 0.95))]
+
+ncol(final_data_sort)
+```
+
+We can see here that variables such as L, EFG_PCT, FGM, FGM_PG, DREB_PCT_RANK, FGM_RANK, and FGM_PG_RANK were all removed based on a .95 threshold. After removing the unnecessary and highly correlated variables, we are left with a data set of 531 rows and 44 variables. Now it's time to remove the outliers. We will remove the players that played less than a minute.
+
+```{r}
+tm = which((final_data_sort$MIN < 1) == T)
+
+final_data_sort = final_data_sort[-c(tm), ]
+
+head(final_data_sort)
+```
+
+After cleaning the data, our final data set consists of 529 observations and 44 columns.
+
+```{r}
+summary(final_data_sort)
+```
+
+Teams and their win percentages.
+
+```{r}
+w$TEAM_ABBREVIATION = as.factor(w$TEAM_ABBREVIATION)
+
+plot(w$TEAM_ABBREVIATION, w$TEAM_WIN_PCT, las = 2, xlab = 'Team Abbreviations', ylab = 'Win Percentage', main = 'NBA 2017-2018 Team Stats')
+```
+
+We can see that some variables will still have a relationship, especially the minutes played variable. [see plot below]
+
+```{r}
+plot(final_data_sort$MIN, final_data_sort$FGA, xlab = 'Minutes', ylab = 'Field Goals Attempted', main = 'Comparison Plot')
+```
+
+Other visualizations can show more about the player statistics themselves. 
+
+```{r}
+ave = mean(final_data_sort$FG_PCT)
+
+plot(final_data_sort$MIN, final_data_sort$FG_PCT, xlab = 'Minutes', ylab = 'Field Goal Percent', main = 'Average Field Goal Percentage')
+abline(h = ave, lwd = 3, col = 'red')
+```
+
+We can see here that the average percentage is 0.4372174. 
+
+
+```{r}
+hist(final_data_sort$NET_RATING, main = 'Net Rating Distribution', xlab = 'Net Rating', col="darkorange2")
+```
+
+Most players are well balanced between offense and defense while a few are only good at one or the other.
+
+These visualizations will help us in picking out the best parameters for our models and ultimately give us the most accurate results.
+
+# Analysis:
+
+## Statistical Learning Task
+
+Our team plans on identifying which player statistics best predict the highest winning percentage. We will fit the data with multiple different types of regression models including: linear, lasso, ridge, logistic, and bayesian.  Furthermore, our analysis will find the most significant variables that provide the strongest relationship between the variables and the winning percentage.
+
+# Results:
+
+The first procedure we performed was multiple linear regression. In order to find the best subset of explanatory variables, we used stepwise selection using AIC parameters in both directions to find the best significant factors to include in the final model shown below.
+
+```{r}
+linear = lm(TEAM_WIN_PCT~ ., data = final_data_sort)
+linear_final = step(linear, direction = 'both', trace = F)
+summary(linear_final)
+```
+
+```{r}
+plot(linear_final)
+```
+
+The final model had an r-squared value of 0.7743 with a p-value close to zero [2.2e-16]. Looking at the selected variables, it makes sense to see general statistics such as wins, minutes played, and pie stats to make the cut. Other individual statistics include defensive rating, field goal statistics, rebound percentage rank, and usage (a crucial factor because it shows how much a player is used during the season) are also included. However, one thing to note is that many of the factors included are heavily correlated and this is depicted when only six variables have a VIF less than 5 (multicollinearity) hinting linear regression isn't the optimal method.
+
+```{r}
+library(car)
+
+vif = vif(linear_final)
+vif
+```
+
+Another regression conducted was Lasso regression. This is a form of penalized regression logistic regression in which it minimizes the sum of squares, but with constraints. In other words, they take into weight on significant variables and basically removes variables that really don't contribute to the model. This method is called shrinkage in which it uses lambda values aka tuning parameter to determine which coefficients become eliminated (turned to zeroes). Typically the higher the lambda values are, more and more coefficients will be reduced to zero and bias increases at the cost of variance. In this case, we use two methods to determine the best lambda value and coefficients to consider in the final method. The first way is using the value that minimizes the root mean square and this is shown in the graph as the log of the optimal value is around -9 (actual value around 0.000194).
+
+```{r}
+library(glmnet)
+final_data2=na.omit(final_data_sort)
+with(final_data_sort,sum(is.na(TEAM_WIN_PCT)))
+dim(final_data2)
+
+
+set.seed(1000)
+lasso_fit1 = cv.glmnet(data.matrix(final_data2[, 6:43]), final_data2$TEAM_WIN_PCT, nfolds = 10)
+
+coef(lasso_fit1,s='lambda.min')
+coef(lasso_fit1, s = "lambda.1se")
+
+plot(lasso_fit1)
+abline(v=log(lasso_fit1$lambda.min),col='red',lwd=2,lty=2)
+
+lasso_fit1$lambda.min
+lasso_fit1$lambda.1se
+```
+
+```{r fig.width=16, fig.height=8, out.width = '90%'}
+par(mfrow = c(1, 2))
+plot(lasso_fit1)
+plot(lasso_fit1$glmnet.fit, "lambda")
+```
+
+As one can see, games played, offensive rating, rebound percentage, field goals made, and several others were considered significant. However, for a more sparser model we used the second method using the one standard error threshold for optimal lambda value (log of lambda is .008).
+
+We can see here only wins, losses, minutes, net rating, pie, win percentage rank, net rating rank and effective field goal pct rank made the final cut. This is understandable as net rating (difference between offensive rating and defensive rating), pie (better version of EFF), and efg pct rank are basically ratings that summarize various statistics together (for ex: efg is where they count three points twice as much than two points made) so therefore, including other variables would be redundant. This method seemed to be the optimal final model using Lasso regression.
+
+We also attempted to used logistic regression, which is typically used for categorical variables.  Win percentage is a quantitative variable, so it became obvious that log regression is not appropriate for this data set.  The only variable that ended up being significant was win percentage rank.  This project showed us how important it is to use an appropriate regression method; log regression was useless because the data was not categorical.
+
+```{r}
+q= as.matrix(colnames(final_data_sort))
+
+input <- final_data_sort[,c(q)]
+a= glm(formula = TEAM_WIN_PCT ~ ., data = input, family = binomial)
+
+summary(a)
+```
+
+```{r}
+a= glm(formula = TEAM_WIN_PCT ~ W_PCT_RANK, data = final_data_sort, family = binomial)
+summary(a)
+plot(a)
+```
+
+We learned about Bayesian regression in STAT 432; it concerns making statements about unknown quantities in terms of probabilities given the observed data and our prior knowledge.  We performed a Bayesian regularized linear regression using conjugate priors.  To do this, we used Bayesian model averaging (BMA) via the bas.lm() from the "BAS" package.  Multiple models were averaged to obtain posteriors of coefficients and predictions from new data.  We were also able to use this data to provide 95% confidence intervals for each variable.
+
+
+
+Ridge regression is typically used to deal with multicollinearity in variables.  This data set has many variables that are intrinsically related to one another, so we expected there to be multicollinearity.  After running the ridge regression, we had a R-squared of .755743, which means that over 75% of the variation is explained by the model.  We also discovered that the optimal lambda value is .01 after using the cv.glmnet function.  This small lambda value meant that ridge regression was one of our most accurate models.
+
+```{r}
+y = final_data_sort$TEAM_WIN_PCT
+x = final_data_sort %>% select(GP, W, MIN, DEF_RATING, AST_RATIO, PIE, GP_RANK, W_RANK, W_PCT_RANK, AST_PCT_RANK, REB_PCT_RANK, TS_PCT_RANK, PIE_RANK, FGA_RANK, FGA_PG_RANK, USG_PCT) %>% data.matrix()
+lambdas = 10^seq(3, -2, by = -.1)
+
+fit = glmnet(x, y, alpha = 0, lambda = lambdas)
+summary(fit)
+
+cv_fit = cv.glmnet(x, y, alpha = 0, lambda = lambdas)
+plot(cv_fit)
+
+opt_lambda = cv_fit$lambda.min
+opt_lambda
+```
+
+```{r}
+fit2 = cv_fit$glmnet.fit
+summary(fit2)
+
+y_predicted = predict(fit2, s = opt_lambda, newx = x)
+
+# Sum of Squares Total and Error
+sst = sum((y - mean(y))^2)
+sse = sum((y_predicted - y)^2)
+
+# R squared
+rsq = 1 - sse / sst
+rsq
+```
+
+# Conclusion
+		
+  Through all of our models and data analysis that we have conducted with this dataset, we have concluded that a team's assist ratio and defensive rating are the most important factors in determining their win percentage for the season.  We also determined that our ridge regression model that had an optimal lambda of 0.01 and that our lasso regression model that had an optimal lambda of 0.0002 gave us the best fitted model of the five different models that we tested.  When creating our models, we had high hopes for the ridge regression model because of how useful those types of models can be when dealing with a dataset that has high multicollinearity such as the dataset that we used for this project.  Lasso regression can do very similar things as ridge regression, but can also remove variables automatically that it deems unnecessary to the model.  So, considering the structure of our dataset and the types of variables that were included in it, it made sense that these two types of regression models, ridge and lasso, ended up yielding the best models for our data.  We feel that there were not really any pitfalls during our process of analyzing the data and there is not really anything that we would change going forward if we were to conduct a similar type of analysis. 
+  
+  Our analysis of a team's assist ratio and defensive rating being the most important factor of having a successful team can be supported by this year's NBA regular season standings and NBA Playoffs.  There were eight teams that finished in the top 10 of both assist ratio and defensive rating.  All eight of those teams went on to qualify for the NBA playoffs at the conclusion of the regular season.  Furthermore, of these eight teams, five of them currently remain in the playoffs.  This indicates that success in both of these two statistical categories not only will lead to regular season success, but also lead to great success in the playoffs and the ultimate goal of winning an NBA Championship.
+
