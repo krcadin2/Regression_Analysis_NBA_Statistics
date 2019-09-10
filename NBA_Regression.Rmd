@@ -1,6 +1,6 @@
 ---
 title: "Analysis of NBA Team Statistics"
-author: "Jovan Krcadinac (krcadin2)""
+author: "Jovan Krcadinac, Danny Annese"
 date: "May 5, 2019"
 output:
   html_document:
